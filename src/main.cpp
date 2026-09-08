@@ -248,14 +248,25 @@ void opcontrol() {
     ez_template_extras();
 
     chassis.opcontrol_arcade_standard(ez::SPLIT);  // Tank control
-    // chassis.opcontrol_arcade_standard(ez::SPLIT);   // Standard split arcade
-    // chassis.opcontrol_arcade_standard(ez::SINGLE);  // Standard single arcade
-    // chassis.opcontrol_arcade_flipped(ez::SPLIT);    // Flipped split arcade
-    // chassis.opcontrol_arcade_flipped(ez::SINGLE);   // Flipped single arcade
+                                                   // chassis.opcontrol_arcade_standard(ez::SPLIT);   // Standard split arcade
+                                                   // chassis.opcontrol_arcade_standard(ez::SINGLE);  // Standard single arcade
+                                                   // chassis.opcontrol_arcade_flipped(ez::SPLIT);    // Flipped split arcade
+                                                   // chassis.opcontrol_arcade_flipped(ez::SINGLE);   // Flipped single arcade
 
     // . . .
     // Put more user control code here!
-    // . . .
+
+    // Intake
+    if (master.get_digital(DIGITAL_R1))
+      intake.move(127);
+    else if (master.get_digital(DIGITAL_R2))
+      intake.move(-127);
+    else
+      intake.move(0);
+
+    // Cylinders
+    claw.button_toggle(master.get_digital(DIGITAL_DOWN));
+    intake_lift.button_toggle(master.get_digital(DIGITAL_UP);
 
     pros::delay(ez::util::DELAY_TIME);  // This is used for timer calculations!  Keep this ez::util::DELAY_TIME
   }
