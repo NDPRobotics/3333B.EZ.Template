@@ -23,6 +23,15 @@ ez::Drive chassis(
 // ez::tracking_wheel horiz_tracker(8, 2.75, 4.0);  // This tracking wheel is perpendicular to the drive wheels
 // ez::tracking_wheel vert_tracker(9, 2.75, 4.0);   // This tracking wheel is parallel to the drive wheels
 
+void lift_auto(double target) {
+  liftPID.target_set(target);
+  ez::exit_output exit = ez::RUNNING;
+  while (liftPID.exit_condition({l_lift, r_lift}, true) == ez::RUNNING) {
+    set_lift(liftPID.compute(l_lift.get_position()));
+    pros::delay(ez::util::DELAY_TIME);
+  }
+  set_lift(0);
+}
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -35,6 +44,8 @@ void initialize() {
 
   pros::delay(500);  // Stop the user from doing anything while legacy ports configure
 
+  l_lift.tare_position();
+  liftPID.exit_condition_set(80, 50, 300, 150, 500, 500);
   // Look at your horizontal tracking wheel and decide if it's in front of the midline of your robot or behind it
   //  - change `back` to `front` if the tracking wheel is in front of the midline
   //  - ignore this if you aren't using a horizontal tracker
@@ -55,7 +66,15 @@ void initialize() {
   // These are already defaulted to these buttons, but you can change the left/right curve buttons here!
   // chassis.opcontrol_curve_buttons_left_set(pros::E_CONTROLLER_DIGITAL_LEFT, pros::E_CONTROLLER_DIGITAL_RIGHT);  // If using tank, only the left side is used.
   // chassis.opcontrol_curve_buttons_right_set(pros::E_CONTROLLER_DIGITAL_Y, pros::E_CONTROLLER_DIGITAL_A);
+}
 
+void lift_task() {
+  pros::delay(2000);  // Set EZ-Template calibrate before this function starts running
+  while (true) {
+    set_lift(liftPID.compute(l_lift.get_position()));
+    pros::delay(ez::util::DELAY_TIME);
+  }
+  pros::Task Lift_Task(lift_task);  // Create the task, this will cause the function to start running
   // Autonomous Selector using LLEMU
   ez::as::auton_selector.autons_add({
       {"Drive\n\nDrive forward and come back", drive_example},
@@ -109,6 +128,15 @@ void competition_initialize() {
  * from where it left off.
  */
 void autonomous() {
+  liftPID.target_set(500);
+  // You can do stuff here and it'll happen while the lift moves
+  lift_wait();  // Wait for the lift to reach its target
+
+  pros::delay(1000);
+
+  liftPID.target_set(0);
+  // You can do stuff here and it'll happen while the lift moves
+  lift_wait();                                // Wait for the lift to reach its target
   chassis.pid_targets_reset();                // Resets PID targets to 0
   chassis.drive_imu_reset();                  // Reset gyro position to 0
   chassis.drive_sensor_reset();               // Reset drive sensors to 0
@@ -221,19 +249,6 @@ void ez_template_extras() {
   }
 }
 
-/**
- * Runs the operator control code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the operator
- * control mode.
- *
- * If no competition control is connected, this function will run immediately
- * following initialize().
- *
- * If the robot is disabled or communications is lost, the
- * operator control task will be stopped. Re-enabling the robot will restart the
- * task, not resume it from where it left off.
- */
 void opcontrol() {
   // This is preference to what you like to drive on
   chassis.drive_brake_set(MOTOR_BRAKE_COAST);
@@ -242,26 +257,46 @@ void opcontrol() {
     // Gives you some extras to make EZ-Template ezier
     ez_template_extras();
 
+    // Driving
     chassis.opcontrol_arcade_standard(ez::SPLIT);  // Tank control
-                                                   // chassis.opcontrol_arcade_standard(ez::SPLIT);   // Standard split arcade
-                                                   // chassis.opcontrol_arcade_standard(ez::SINGLE);  // Standard single arcade
-                                                   // chassis.opcontrol_arcade_flipped(ez::SPLIT);    // Flipped split arcade
-                                                   // chassis.opcontrol_arcade_flipped(ez::SINGLE);   // Flipped single arcade
-
-    // . . .
-    // Put more user control code here!
 
     // Intake
-    if (master.get_digital(DIGITAL_R1))
+    if (master.get_digital(DIGITAL_R1)) {
       intake.move(127);
-    else if (master.get_digital(DIGITAL_R2))
+    }
+
+    else if (master.get_digital(DIGITAL_R2)) {
       intake.move(-127);
-    else
+    }
+
+    else {
       intake.move(0);
+    }
+
+    // Lift
+    if (master.get_digital(DIGITAL_L1)) {
+      wrist.set(true);
+      ramp.set(true);
+      set_lift(127);
+    }
+
+    else if (master.get_digital(DIGITAL_L2)) {
+      wrist.set(true);
+      ramp.set(true);
+      set_lift(-127);
+    }
+
+    else {
+      set_lift(0);
+    }
+
+    // Loading Macro
+    if (master.get_digital(DIGITAL_X)) {
+      lift_macro();
+    }
 
     // Cylinders
-    claw.button_toggle(master.get_digital(DIGITAL_DOWN));
-    intake_lift.button_toggle(master.get_digital(DIGITAL_UP));
+    claw.button_toggle(master.get_digital(DIGITAL_B));
 
     pros::delay(ez::util::DELAY_TIME);  // This is used for timer calculations!  Keep this ez::util::DELAY_TIME
   }
