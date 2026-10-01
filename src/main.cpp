@@ -257,10 +257,10 @@ void opcontrol() {
     // Gives you some extras to make EZ-Template ezier
     ez_template_extras();
 
-    // Driving
+    // Driving-------------------------------------------
     chassis.opcontrol_arcade_standard(ez::SPLIT);  // Tank control
 
-    // Intake
+    // Intake-------------------------------------------
     if (master.get_digital(DIGITAL_R1)) {
       intake.move(127);
     }
@@ -273,7 +273,7 @@ void opcontrol() {
       intake.move(0);
     }
 
-    // Lift
+    // Lift---------------------------------------------
     if (master.get_digital(DIGITAL_L1)) {
       wrist.set(true);
       ramp.set(true);
@@ -290,12 +290,12 @@ void opcontrol() {
       set_lift(0);
     }
 
-    // Loading Macro
+    // Loading Macro-------------------------------------------
     if (master.get_digital(DIGITAL_X)) {
       lift_macro();
     }
 
-    // Cylinders
+    // Cylinders-------------------------------------------
     claw.button_toggle(master.get_digital(DIGITAL_B));
 
     pros::delay(ez::util::DELAY_TIME);  // This is used for timer calculations!  Keep this ez::util::DELAY_TIME
